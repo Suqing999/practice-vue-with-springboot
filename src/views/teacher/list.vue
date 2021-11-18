@@ -66,6 +66,16 @@
             @click="deleteRow(scope.row.id,scope.row.name)">
             移除
           </el-button>
+
+          <router-link :to="'/teacher/edit/'+scope.row.id">
+            <el-button
+              type="text"
+              size="medium"
+            >
+              修改
+            </el-button>
+          </router-link>
+
         </template>
       </el-table-column>
     </el-table>
