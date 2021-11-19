@@ -22,13 +22,28 @@
           <el-option :value="2" label="首席讲师"/>
         </el-select>
       </el-form-item>
+
       <el-form-item label="讲师资历">
         <el-input v-model="teacher.career"/>
       </el-form-item>
+      <el-form-item label="讲师头像">
+        <el-upload
+          :show-file-list="false"
+          :on-success="handleAvatarSuccess"
+          :on-error="handleAvatarError"
+          :before-upload="beforeAvatarUpload"
+          class="avatar-uploader"
+          action="http://localhost:8120/admin/oss/file/upload?module=avatar">
+          <img v-if="teacher.avatar" :src="teacher.avatar" class="avatar">
+          <i v-else class="el-icon-circle-plus avatar-uploader-icon"/>
+        </el-upload>
+      </el-form-item>
+
       <el-form-item label="讲师简介">
         <el-input v-model="teacher.intro" :rows="10" type="textarea"/>
       </el-form-item>
       <!-- 讲师头像：TODO -->
+
       <el-form-item>
         <el-button :disabled="saveBtnDisabled" type="primary" @click="saveOrUpdate()">保存</el-button>
       </el-form-item>
@@ -38,7 +53,7 @@
 
 <script>
 import teacherApi from '@/api/teacher'
-
+import { Message } from 'element-ui'
 export default{
   data() {
     return {
@@ -60,6 +75,44 @@ export default{
     if (this.$route.params.id) { this.getById(this.$route.params.id) }
   },
   methods: {
+    // 文件上传成功的钩子函数
+    handleAvatarSuccess(res) {
+      // 因为是200的代码，所以http是正确的
+      // 判断20000自定义
+      if (res.success) {
+        // 赋值
+        this.teacher.avatar = res.data.url
+        // 强制重新渲染
+        this.$forceUpdate()
+      } else {
+        Message({
+          message: res.message + ' 错误代码：' + res.code,
+          type: 'error',
+          duration: 5 * 1000
+        })
+      }
+    },
+    // 文件上传失败
+    handleAvatarError() {
+      Message({
+        message: '服务器错误',
+        type: 'error',
+        duration: 5 * 1000
+      })
+    },
+    // 文件上传前的校验钩子
+    beforeAvatarUpload(file) {
+      const isJPG = (file.type === 'image/jpeg' || file.type === 'image/png') // 这个是mime命名
+      const isLt2M = file.size / 1024 / 1024 < 1
+
+      if (!isJPG) {
+        this.$message.error('上传头像图片只能是 JPG 格式!')
+      }
+      if (!isLt2M) {
+        this.$message.error('上传头像图片大小不能超过 2MB!')
+      }
+      return isJPG && isLt2M
+    },
     saveOrUpdate() {
       this.saveBtnDisabled = true // 禁用按钮
       console.log(this.teacher)
@@ -125,3 +178,28 @@ export default{
 
 }
 </script>
+<style>
+  .avatar-uploader .el-upload {
+    border: 1px dashed #d9d9d9;
+    border-radius: 6px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .avatar-uploader .el-upload:hover {
+    border-color: #409EFF;
+  }
+  .avatar-uploader-icon {
+    font-size: 28px;
+    color: #8c939d;
+    width: 178px;
+    height: 178px;
+    line-height: 178px;
+    text-align: center;
+  }
+  .avatar {
+    width: 178px;
+    height: 178px;
+    display: block;
+  }
+</style>

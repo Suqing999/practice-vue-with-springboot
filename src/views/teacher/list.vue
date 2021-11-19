@@ -4,7 +4,16 @@
     <!--查询表单-->
     <el-form :inline="true">
       <el-form-item>
-        <el-input v-model="searchObj.name" placeholder="姓名"/>
+        <!-- <el-input v-model="searchObj.name" placeholder="姓名"/> -->
+        <el-autocomplete
+          v-model="searchObj.name"
+          :fetch-suggestions="querySearch"
+          :trigger-on-focus="false"
+          value-key = "name"
+          class="inline-input"
+          placeholder="姓名"
+        />
+
       </el-form-item>
 
       <el-form-item>
@@ -34,8 +43,17 @@
       </el-form-item>
     </el-form>
 
+    <!-- 批量删除按钮 -->
+    <div style="margin-bottom:10px">
+      <el-button type="danger" size="mini" icon="el-icon-delete" @click="deleteList()">批量删除</el-button>
+    </div>
     <!-- 表格 -->
-    <el-table :data="list" border stripe>
+    <el-table :data="list" border stripe @selection-change="handleSelectionChange">
+
+      <el-table-column
+        type="selection"
+        width="40"/>
+
       <el-table-column label="序号" width="50">
         <template slot-scope="scope">
           {{ (page-1)*limit+scope.$index+1 }}
@@ -107,9 +125,8 @@ export default{
       total: 0, // 总记录数
       page: 1, // 页码
       limit: 5, // 每页记录数
-      searchObj: {
-
-      } // 查询表单
+      searchObj: {}, // 查询表单
+      idMessageList: [] // 选中的数据列表
     }
   },
   created() {
@@ -172,6 +189,55 @@ export default{
             message: '已取消删除'
           })
         }
+      })
+    },
+    // 批量删除
+    deleteList() {
+      const idList = []
+      this.idMessageList.forEach(item => {
+        idList.push(item.id)
+      })
+      console.log(idList.length)
+      if (idList.length <= 0) {
+        this.$notify({
+          title: '删除失败',
+          message: '请选择需要删除的老师',
+          type: 'error'
+        })
+      } else {
+        this.$confirm('请确认是否删除?', '注意', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          teacherApi.deleteListTeacher(idList).then(response => {
+            console.log('删除idList: ' + idList)
+            this.$notify({
+              title: '删除成功',
+              message: '成功删除' + name + '讲师',
+              type: 'success'
+            })
+            this.fetchData()
+          })
+        }).catch(error => {
+          if (error === 'cancel') {
+            this.$message({
+              type: 'info',
+              message: '已取消删除'
+            })
+          }
+        })
+      }
+    },
+    handleSelectionChange(selection) { // 处理变化
+      this.idMessageList = selection
+    },
+    // 输入建议
+    querySearch(queryString, callback) {
+      console.log(queryString)
+      teacherApi.getNameList(queryString).then(response => {
+        console.log(response.data.nameList)
+        callback(response.data.nameList)
       })
     }
 

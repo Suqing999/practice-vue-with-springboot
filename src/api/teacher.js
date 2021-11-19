@@ -22,6 +22,15 @@ export default{
       method: 'delete'
     })
   },
+
+  deleteListTeacher(idList) {
+    return request({
+      url: '/teacher/removelist',
+      method: 'delete',
+      data: idList
+    })
+  },
+
   save(teacher) {
     return request({
       url: '/teacher/save',
@@ -42,6 +51,13 @@ export default{
   fetchDataById(id) {
     return request({
       url: `/teacher/${id}`,
+      method: 'get'
+    })
+  },
+
+  getNameList(key) {
+    return request({
+      url: `/teacher/list/name/${key}`,
       method: 'get'
     })
   }
