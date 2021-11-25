@@ -8,23 +8,58 @@
       </el-form-item>
 
       <!-- 课程讲师 -->
+      <el-form-item label="课程讲师">
+        <el-select v-model="courseInfo.teacherId" placeholder="请选择">
+          <el-option
+            v-for="teacher in teacherList"
+            :key="teacher.id"
+            :value="teacher.id"
+            :label="teacher.name" />
+        </el-select>
+      </el-form-item>
 
       <!-- 所属分类 -->
-      <!-- 一级分类 -->
-      <!-- 二级分类 -->
+      <el-form-item label="课程分类">
+        <!-- 一级分类 -->
+        <el-select
+          v-model="courseInfo.subjectParentId"
+          placeholder="请选择"
+          @change="subjectChanged">
+          <el-option
+            v-for="subject in subjectList"
+            :key="subject.id"
+            :value="subject.id"
+            :label="subject.title" />
+        </el-select>
+
+        <!-- 二级分类 -->
+        <el-select
+          v-model="courseInfo.subjectId"
+          placeholder="请选择">
+          <el-option
+            v-for="subject in subjectLevelTwoList"
+            :key="subject.id"
+            :value="subject.id"
+            :label="subject.title" />
+        </el-select>
+
+      </el-form-item>
 
       <el-form-item label="总课时">
         <el-input-number :min="1" v-model="courseInfo.lessonNum" controls-position="right" placeholder="请填写课程的总课时数"/>
       </el-form-item>
 
       <!-- 课程简介-->
+      <el-form-item label="课程简介">
+        <tinymce :height="300" v-model="courseInfo.description"/>
+      </el-form-item>
 
       <!-- 课程封面 -->
 
       <el-form-item label="课程价格">
         <el-input-number :min="0" v-model="courseInfo.price" controls-position="right" placeholder="免费课程请设置为0元"/> 元
       </el-form-item>
-    </el-form-item></el-form>
+    </el-form>
 
     <!-- 按钮>保存下一步 -->
     <div style="text-align:center">
@@ -35,8 +70,14 @@
 
 <script>
 import courseApi from '@/api/course'
+import teacherApi from '@/api/teacher'
+import subjectApi from '@/api/subject'
 // 富文本编辑器
+import Tinymce from '@/components/Tinymce'
+
 export default {
+  components: { Tinymce },
+
   data() {
     return {
       saveBtnDisabled: false, // 按钮是否禁用
@@ -58,11 +99,12 @@ export default {
   },
 
   created() {
-    if (this.$parent.courseId) { // 回显
-      this.fetchCourseInfoById(this.$parent.courseId)
-    } else { // 新增：只渲染一级类别
-      this.initSubjectList()
-    }
+    // if (this.$parent.courseId) { // 回显
+    //   this.fetchCourseInfoById(this.$parent.courseId)
+    // } else { // 新增：只渲染一级类别
+    //   this.initSubjectList()
+    // }
+    this.initSubjectList()
     this.initTeacherList()
   },
 
@@ -84,6 +126,29 @@ export default {
     },
     updateData() {
 
+    },
+    initTeacherList() {
+      teacherApi.list().then(response => {
+        // console.log(response.data.items)
+        this.teacherList = response.data.items
+      })
+    },
+    initSubjectList() {
+      subjectApi.nestlist().then(response => {
+        console.log(response.data.items)
+        this.subjectList = response.data.items
+      })
+    },
+    subjectChanged(oneData) {
+      // 切换一级
+      // console.log(oneData + '哇gags的')
+      this.subjectList.forEach(subject => {
+        // 先去清空
+        this.courseInfo.subjectId = ''
+        if (subject.id === oneData) {
+          this.subjectLevelTwoList = subject.children
+        }
+      })
     }
 
   }
