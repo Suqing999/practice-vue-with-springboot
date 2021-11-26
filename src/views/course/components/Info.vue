@@ -55,6 +55,18 @@
       </el-form-item>
 
       <!-- 课程封面 -->
+      <el-form-item label="课程封面">
+        <el-upload
+          :show-file-list="false"
+          :on-success="handleCoverSuccess"
+          :before-upload="beforeCoverUpload"
+          :on-error="handleCoverError"
+          class="cover-uploader"
+          action="http://localhost:8120/admin/oss/file/upload?module=cover">
+          <img v-if="courseInfo.cover" :src="courseInfo.cover">
+          <i v-else class="el-icon-plus avatar-uploader-icon"/>
+        </el-upload>
+      </el-form-item>
 
       <el-form-item label="课程价格">
         <el-input-number :min="0" v-model="courseInfo.price" controls-position="right" placeholder="免费课程请设置为0元"/> 元
@@ -99,33 +111,59 @@ export default {
   },
 
   created() {
-    // if (this.$parent.courseId) { // 回显
-    //   this.fetchCourseInfoById(this.$parent.courseId)
-    // } else { // 新增：只渲染一级类别
-    //   this.initSubjectList()
-    // }
-    this.initSubjectList()
+    console.log(this.$parent.courseId)
+    if (this.$parent.courseId) { // 回显
+      this.fetchCourseInfoById(this.$parent.courseId)
+      // 回显状态：应该渲染一级和二级（在fetchCourse中）
+    } else { // 新增状态：只渲染一级类别
+      this.initSubjectList()
+    }
     this.initTeacherList()
   },
 
   methods: {
+  // 数据回显
+    fetchCourseInfoById(courseId) {
+      console.log('回显')
+      courseApi.getCourseInfoById(courseId).then(response => {
+        this.courseInfo = response.data.item
 
+        // 类别渲染
+        subjectApi.nestlist().then(response => {
+          this.subjectList = response.data.items
+          // 判断this.subjectList下哪个一级类别是当前绑定的一级类别
+          this.subjectList.forEach(subject => {
+            if (subject.id === this.courseInfo.subjectParentId) {
+              this.subjectLevelTwoList = subject.children
+            }
+          })
+        })
+      })
+    },
     //   保存并下一步
     saveAndNext() {
+      console.log('更新' + this.$parent.courseId)
       this.saveBtnDisabled = true
-      // this.$parent.active = 1
-      this.saveData()
+      if (this.$parent.courseId) { // 回显
+        this.updateData()
+      } else {
+        this.saveData()
+      }
     },
     saveData() {
       courseApi.saveCourseInfo(this.courseInfo).then(response => {
         this.$message.success(response.message)
-        this.$parent.courseId = response.data.courseId// 获取id交给父组件
+        console.log(response.data)
+        this.$parent.courseId = response.data.courseID// 获取id交给父组件
         // 成功后再下一步
         this.$parent.active = 1
       })
     },
     updateData() {
-
+      courseApi.updateCourseInfo(this.courseInfo).then(response => {
+        this.$message.success(response.message)
+        this.$parent.active = 1
+      })
     },
     initTeacherList() {
       teacherApi.list().then(response => {
@@ -149,6 +187,37 @@ export default {
           this.subjectLevelTwoList = subject.children
         }
       })
+    },
+    // 上传成功回调
+    handleCoverSuccess(res, file) {
+      if (res.success) {
+        // console.log(res)
+        this.courseInfo.cover = res.data.url
+        // 强制重新渲染
+        this.$forceUpdate()
+      } else {
+        this.$message.error('上传失败1（非20000）')
+      }
+    },
+
+    // 上传校验
+    beforeCoverUpload(file) {
+      const isJPG = file.type === 'image/jpeg'
+      const isLt2M = file.size / 1024 / 1024 < 2
+
+      if (!isJPG) {
+        this.$message.error('上传头像图片只能是 JPG 格式!')
+      }
+      if (!isLt2M) {
+        this.$message.error('上传头像图片大小不能超过 2MB!')
+      }
+      return isJPG && isLt2M
+    },
+
+    // 错误处理
+    handleCoverError() {
+      console.log('error')
+      this.$message.error('上传失败（http错误）')
     }
 
   }
